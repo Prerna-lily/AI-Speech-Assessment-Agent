@@ -1,70 +1,120 @@
-# Getting Started with Create React App
+# AI Speech Assessment Agent
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+An interactive voice-based assessment system that evaluates students' understanding through speech recognition and AI analysis.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- 🎤 Voice-based question answering
+- 🧠 AI-powered answer evaluation
+- 👁️ Webcam proctoring with object detection
+- 📊 Score calculation and feedback generation
+- 🗄️ PostgreSQL database integration
 
-### `npm start`
+## System Architecture
+Frontend (React) ← HTTP → Backend (Flask) ←→ Database (PostgreSQL)
+↑
+AI Evaluation (Groq/Llama)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Prerequisites
 
-### `npm test`
+- Python 3.9+
+- Node.js 16+
+- PostgreSQL
+- Groq API key
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Installation
 
-### `npm run build`
+### Backend Setup
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Prerna-lily/AI-Speech-Assessment-Agent.git
+   cd AI-Speech-Assessment-Agent
+Set up Python environment:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
+pip install -r requirements.txt
+Configure environment variables:
+Create .env file in backend directory:
 
-### `npm run eject`
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+GROQ_API_KEY=your_groq_api_key
+DATABASE_URL=postgresql://username:password@localhost:5432/examdb
+Initialize database:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+psql -U postgres -c "CREATE DATABASE examdb;"
+Frontend Setup
+Navigate to frontend directory:
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
 
-## Learn More
+cd frontend
+Install dependencies:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+npm install
+Running the Application
+Backend Server
+bash
+Copy
+python agent.py
+Runs on http://localhost:5000
 
-### Code Splitting
+Frontend Development Server
+bash
+Copy
+npm start
+Runs on http://localhost:3000
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+API Endpoints
+Endpoint	Method	Description
+/evaluate-answer	POST	Evaluate student answers
+/store-exam-result	POST	Store exam results
+/extract-keywords	POST	Extract keywords from text
 
-### Analyzing the Bundle Size
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+Database Schema
 
-### Making a Progressive Web App
+CREATE TABLE exam_results (
+    id SERIAL PRIMARY KEY,
+    student_name VARCHAR(100),
+    subject VARCHAR(100),
+    topic TEXT,
+    score INTEGER,
+    cheated BOOLEAN,
+    entry_time TIMESTAMP
+);
+Configuration
+Backend
+Modify agent.py for port changes
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+Edit .env for API keys and DB connection
 
-### Advanced Configuration
+Frontend
+Configure API base URL in src/api.js
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+Adjust proctoring sensitivity in src/components/WebcamMonitor.js
 
-### Deployment
+Troubleshooting
+Webcam not working:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+Ensure browser permissions
 
-### `npm run build` fails to minify
+Check console for errors
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Speech recognition issues:
+
+Use Chrome/Firefox
+
+Ensure microphone permissions
+
+Database connection problems:
+
+Verify PostgreSQL service is running
+
+Check .env credentials
+
