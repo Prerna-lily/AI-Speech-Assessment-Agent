@@ -1,0 +1,12 @@
+# Backend Python Dependencies
+Flask==3.0.2
+Flask-Cors==4.0.0
+psycopg2-binary==2.9.9
+python-dotenv==1.0.0
+groq==0.6.0
+
+# Development/Testing (optional)
+pytest==8.0.2
+pytest-cov==4.1.0
+flake8==7.0.0
+black==24.2.0
