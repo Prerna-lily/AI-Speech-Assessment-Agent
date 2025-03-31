@@ -139,11 +139,8 @@ function App() {
     setWarnings(prev => {
       const newWarnings = [...prev, `${new Date().toLocaleTimeString()} - ${message}`];
       if (newWarnings.length >= 3) {
-        speak('Exam terminated due to repeated violations.');
-        setError('Exam terminated due to repeated violations.');
-        setFeedback('You have failed the assessment due to repeated violations.');
-        setCurrentStep('complete');
-        stopWebcam();
+        failAssessment('repeated violations'); // Now using the function
+        return newWarnings;
       }
       return newWarnings;
     });
@@ -250,21 +247,32 @@ function App() {
     );
   };
 
-  const extractKeywords = (text) => {
-    // Remove common stop words and split into words
-    const stopWords = ['a', 'an', 'the', 'is', 'are', 'was', 'were', 'in', 'on', 'to', 'for', 'with', 'about', 'of'];
-    const words = text.toLowerCase().replace(/[.,!?]/g, '').split(/\s+/);
-    const keywords = words.filter(word => !stopWords.includes(word) && word.length > 3);
+  const extractKeywords = (text, count = 2) => {
+    if (!text) return [];
     
-    // Return the top 2 most frequent or relevant keywords (simplified)
-    const keywordFreq = keywords.reduce((acc, word) => {
-      acc[word] = (acc[word] || 0) + 1;
-      return acc;
-    }, {});
-    
-    return Object.keys(keywordFreq)
-      .sort((a, b) => keywordFreq[b] - keywordFreq[a])
-      .slice(0, 2);
+    // Improved list of stop words
+    const stopWords = new Set([
+      'a', 'an', 'the', 'is', 'are', 'was', 'were', 'in', 'on', 'to', 'for', 
+      'with', 'about', 'of', 'and', 'or', 'it', 'this', 'that', 'these', 'those',
+      'i', 'you', 'he', 'she', 'we', 'they', 'my', 'your', 'his', 'her', 'our', 'their'
+    ]);
+  
+    // Extract words, remove punctuation, and filter
+    const words = text.toLowerCase()
+      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
+      .split(/\s+/)
+      .filter(word => word.length > 3 && !stopWords.has(word));
+  
+    // Count word frequency
+    const wordCount = {};
+    words.forEach(word => {
+      wordCount[word] = (wordCount[word] || 0) + 1;
+    });
+  
+    // Sort by frequency and get top keywords
+    return Object.keys(wordCount)
+      .sort((a, b) => wordCount[b] - wordCount[a])
+      .slice(0, count);
   };
 
   const askSubject = () => {
@@ -285,62 +293,69 @@ function App() {
 
   const askTopic = (extractedSubject) => {
     setCurrentStep('topic');
-    speak(`Great! What specific topic did you learn about in ${extractedSubject} today? Please give a detailed explanation.`, () =>
+    const question = `Great! Tell me about a specific concept you learned in ${extractedSubject} today.`;
+    speak(question, () =>
       startListening(setStudentAnswer, (answer) => {
         if (!answer || answer.trim() === '') {
           speak("I didn't hear your explanation. Please try again.", () =>
             startListening(setStudentAnswer, (newAnswer) => askApplications(extractedSubject, newAnswer))
           );
         } else {
-          const keywords = extractKeywords(answer);
-          askApplications(extractedSubject, answer, keywords);
+          askApplications(extractedSubject, answer);
         }
       })
     );
   };
 
-  const askApplications = (subjectValue, topicAnswer, keywords = []) => {
+  const askApplications = (subjectValue, topicAnswer) => {
     setCurrentStep('applications');
-    const keywordText = keywords.length > 0 ? `related to ${keywords.join(' and ')}` : '';
-    speak(`Thanks! What are some real-time applications of ${topicAnswer} in ${subjectValue} ${keywordText}? Please provide concrete examples.`, () =>
+    const keywords = extractKeywords(topicAnswer);
+    const keywordText = keywords.length > 0 ? ` (focusing on ${keywords.join(' and ')})` : '';
+    
+    const question = `Interesting! Can you give me 1-2 real-world applications of this${keywordText}?`;
+    speak(question, () =>
       startListening(setApplicationsAnswer, (answer) => {
         if (!answer || answer.trim() === '') {
           speak("I didn't hear your examples. Please try again.", () =>
-            startListening(setApplicationsAnswer, (newAnswer) => askQuestion3(subjectValue, topicAnswer, newAnswer, keywords))
+            startListening(setApplicationsAnswer, (newAnswer) => askQuestion3(subjectValue, topicAnswer, newAnswer))
           );
         } else {
-          const newKeywords = extractKeywords(answer);
-          askQuestion3(subjectValue, topicAnswer, answer, newKeywords);
+          askQuestion3(subjectValue, topicAnswer, answer);
         }
       })
     );
   };
 
-  const askQuestion3 = (subjectValue, topicAnswer, applicationsAnswer, keywords = []) => {
-    setCurrentStep('question3');
-    const keywordText = keywords.length > 0 ? `especially regarding ${keywords.join(' and ')}` : '';
-    speak(`Good! How does ${topicAnswer} impact ${subjectValue} in modern technology ${keywordText}? Please explain in detail.`, () =>
-      startListening(setQuestion3Answer, (answer) => {
-        if (!answer || answer.trim() === '') {
-          speak("I didn't hear your explanation. Please try again.", () =>
-            askQuestion3(subjectValue, topicAnswer, applicationsAnswer, keywords)
-          );
-        } else {
-          const newKeywords = extractKeywords(answer);
-          askQuestion4(subjectValue, topicAnswer, applicationsAnswer, answer, newKeywords);
-        }
-      })
-    );
-  };
+  const askQuestion3 = (subjectValue, topicAnswer, applicationsAnswer) => {
+  setCurrentStep('question3');
+  const keywords = extractKeywords(applicationsAnswer);
+  const keywordText = keywords.length > 0 ? `, particularly ${keywords.join(' and ')}` : '';
+  
+  const question = `How does this concept affect modern technology${keywordText}?`;
+  speak(question, () =>
+    startListening(setQuestion3Answer, (answer) => {
+      if (!answer || answer.trim() === '') {
+        speak("I didn't hear your explanation. Please try again.", () =>
+          askQuestion3(subjectValue, topicAnswer, applicationsAnswer)
+        );
+      } else {
+        askQuestion4(subjectValue, topicAnswer, applicationsAnswer, answer);
+      }
+    })
+  );
+};
 
-  const askQuestion4 = (subjectValue, topicAnswer, applicationsAnswer, question3Answer, keywords = []) => {
+const askQuestion4 = (subjectValue, topicAnswer, applicationsAnswer, question3Answer) => {
   setCurrentStep('question4');
-  const keywordText = keywords.length > 0 ? `focusing on ${keywords.join(' and ')}` : '';
-  speak(`Nice! What challenges might arise when implementing ${topicAnswer} in ${subjectValue} ${keywordText}? Please provide specific examples.`, () =>
+  const keywords = extractKeywords(question3Answer);
+  const keywordText = keywords.length > 0 ? ` regarding ${keywords.join(' and ')}` : '';
+  
+  const question = `What challenges might we face when implementing this${keywordText}?`;
+  speak(question, () =>
     startListening(setQuestion4Answer, (answer) => {
       if (!answer || answer.trim() === '') {
         speak("I didn't hear your examples. Please try again.", () =>
-          askQuestion4(subjectValue, topicAnswer, applicationsAnswer, question3Answer, keywords)
+          askQuestion4(subjectValue, topicAnswer, applicationsAnswer, question3Answer)
         );
       } else {
         evaluateAnswer(subjectValue, topicAnswer, applicationsAnswer, question3Answer, answer);
