@@ -1,15 +1,20 @@
 from flask import Flask, request, jsonify
-import openai
 from flask_cors import CORS
 import psycopg2
 from psycopg2.extras import DictCursor
 import datetime
 import os
+from groq import Groq
+from dotenv import load_dotenv  
+
+# Load environment variables from .env file
+load_dotenv() 
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Initialize Groq client
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 DATABASE_URL = "postgresql://postgres:prerna2004@localhost:5432/examdb"
 
 def connect_db():
@@ -69,13 +74,18 @@ def evaluate_answer_ai(question1, answer1, question2, answer2, question3, answer
     Overall: [summary feedback]
     """
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=1000,
-            temperature=0.7
+        chat_completion = groq_client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            model="llama3-70b-8192",  # Using the latest Llama 3 70B model
+            temperature=0.7,
+            max_tokens=1000
         )
-        return response["choices"][0]["message"]["content"]
+        return chat_completion.choices[0].message.content
     except Exception as e:
         return f"Score: 0\nError: {str(e)}"
 
